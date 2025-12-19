@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adk-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adk-agent
+  template:
+    metadata:
+      labels:
+        app: adk-agent
+    spec:
+      # serviceAccount: adk-agent-sa
+      containers:
+      - name: adk-agent
+        imagePullPolicy: Always
+        image: us-central1-docker.pkg.dev/<PROJECT_ID>/adk-repo/adk-agent:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+            ephemeral-storage: "128Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "500m"
+            ephemeral-storage: "128Mi"
+        ports:
+        - containerPort: 8080
+        env:
+          - name: PORT
+            value: "8080"
+          - name: GOOGLE_CLOUD_PROJECT
+            value: akvelon-gke-aieco
+          - name: GOOGLE_CLOUD_LOCATION
+            value: us-east4
+          - name: GOOGLE_GENAI_USE_VERTEXAI
+            value: "false"
+          - name: GOOGLE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: google-api-key
+                key: api-key
+          - name: BUCKET_NAME
+            value: dimadrogovoz-tf-backend
+          - name: GCS_FILE_NAME
+            value: tool_updates.json
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adk-agent
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: adk-agent

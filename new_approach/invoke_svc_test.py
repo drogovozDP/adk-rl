@@ -1,0 +1,65 @@
+import requests
+import json
+
+# Configuration
+# APP_URL = "http://localhost:8000" # Change to your actual URL/Port
+APP_URL = "http://adk-agent:80" # Change to your actual URL/Port
+APP_NAME = "capital_agent"
+USER_ID = "user_1234"
+SESSION_ID = "session_abc"
+
+def run_adk_agent():
+    # 1. Create or Update Session (Pass custom parameters here)
+    # This sets the initial state/context for the session
+    session_url = f"{APP_URL}/apps/{APP_NAME}/users/{USER_ID}/sessions/{SESSION_ID}"
+
+    # These are your custom parameters/state
+    session_data = {
+        "preferred_language": "English",
+        "visit_count": 5,
+        "custom_mode": "expert",
+        "kek": "sus",
+    }
+
+    print(f"--- Initializing Session: {SESSION_ID} ---")
+    session_res = requests.post(session_url, json=session_data)
+    session_res.raise_for_status()
+
+    # 2. Run the Agent
+    run_url = f"{APP_URL}/run_sse"
+
+    payload = {
+        "app_name": APP_NAME,
+        "user_id": USER_ID,
+        "session_id": SESSION_ID,
+        "new_message": {
+            "role": "user",
+            "parts": [{"text": "What is the capital of Canada?"}]
+        },
+        "streaming": False, # Set to False for a simple JSON response
+        "metadata": "test"
+    }
+
+    print(f"--- Running Agent: {APP_NAME} ---")
+    response = requests.post(run_url, json=payload)
+
+    if response.status_code == 200:
+        # If streaming is False, ADK usually returns a JSON object
+        # Note: If the endpoint strictly follows SSE format even for non-streaming,
+        # you might need to parse the text data.
+        try:
+            result = response.json()
+            # Navigate the response structure to get the text
+            answer = result.get("message", {}).get("parts", [{}])[0].get("text")
+            print(f"Agent Response: {answer}")
+        except json.JSONDecodeError:
+            print("Response received, but it was not valid JSON. Response text:")
+            print(response.text)
+    else:
+        print(f"Error {response.status_code}: {response.text}")
+
+    session_res = requests.delete(session_url, json=session_data)
+    session_res.raise_for_status()
+
+if __name__ == "__main__":
+    run_adk_agent()

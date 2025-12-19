@@ -1,0 +1,74 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: ray-cluster-example
+spec:
+  rayVersion: '2.9.0'
+  enableInTreeAutoscaling: true
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+      num-cpus: '0'
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: rayproject/ray-ml:2.9.0-py310
+          ports:
+          - containerPort: 6379
+            name: gcs
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 10001
+            name: client
+          resources:
+            limits:
+              cpu: "1"
+              memory: "4G"
+            requests:
+              cpu: "1"
+              memory: "4G"
+  workerGroupSpecs:
+  # --- Group 1: Standard, non-sandboxed workers ---
+  - replicas: 1
+    minReplicas: 1
+    maxReplicas: 10
+    groupName: standard-group
+    rayStartParams: {}
+    template:
+      spec:
+        containers:
+        - name: ray-worker
+          image: rayproject/ray-ml:2.9.0-py310
+          resources:
+            limits:
+              cpu: "1"
+              memory: "4G"
+            requests:
+              cpu: "1"
+              memory: "4G"
+
+  # --- Group 2: gVisor-sandboxed workers ---
+  - replicas: 2
+    minReplicas: 2
+    maxReplicas: 10
+    groupName: sandboxed-group
+    rayStartParams:
+      resources: '"{\"gvisor\": 1}"'
+    template:
+      metadata:
+        annotations:
+          ray.io/resource.gvisor: "1"
+      spec:
+        # This is the key change: Run this pod with the gVisor runtime
+        runtimeClassName: gvisor
+        containers:
+        - name: ray-worker
+          image: rayproject/ray-ml:2.9.0-py310
+          resources:
+            limits:
+              cpu: "1"
+              memory: "4G"
+            requests:
+              cpu: "1"
+              memory: "4G"
