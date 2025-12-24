@@ -17,6 +17,11 @@ variable "project_id" {
   description = "GCP project id"
 }
 
+variable "project_number" {
+  type        = number
+  description = "GCP project number"
+}
+
 variable "cluster_name" {
   type = string
 }
@@ -59,6 +64,12 @@ variable "artifact_registry_location" {
   type = string
   description = "Location of Artifact Registry Repository"
   default = "us-central1"
+}
+
+variable "bucket_name" {
+  type = string
+  description = "Name of a Google Cloud Storage bucket"
+  default = "adk-gcs-test-bucket"
 }
 
 variable "enable_gpu" {

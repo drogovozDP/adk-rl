@@ -1,6 +1,8 @@
 import os
 import json
 import datetime
+
+from google.genai.types import Content, Part
 from google.adk.agents import LlmAgent
 from google.adk.models import LlmResponse, LlmRequest
 from google.adk.tools import FunctionTool
@@ -12,7 +14,7 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME", "dimadrogovoz-tf-backend")
 GCS_FILE_NAME = os.environ.get("GCS_FILE_NAME", "tool_updates.json")
 
 # Define a tool function
-def get_capital_city(country: str) -> str:
+def get_capital_city_info(country: str) -> str:
     """Retrieves the capital city of a given country."""
     print(f"--- Tool 'get_capital_city' executing with country: {country} ---")
     country_capitals = {
@@ -23,14 +25,14 @@ def get_capital_city(country: str) -> str:
     }
     return country_capitals.get(country.lower(), f"Capital not found for {country}")
 
-capital_tool = FunctionTool(func=get_capital_city)
+capital_tool = FunctionTool(func=get_capital_city_info)
 
 # --- Define the Callback Function ---
 class BeforeModelResponseCallback:
     def __init__(self, bucket_name, gcs_file_name):
         self.bucket_name = bucket_name
         self.gcs_file_name = gcs_file_name
-        self.tool_updates = {"get_capital_city": self._get_tool_updates()}
+        self.tool_updates = self._get_tool_updates()
         self.timestamp = datetime.datetime.now()
 
     def _get_tool_updates(self):
@@ -44,11 +46,11 @@ class BeforeModelResponseCallback:
         tool_updates = json.loads(json_content)
 
         print(f"[GCS] Tool updates: {tool_updates}")
-        return tool_updates[-1]
+        return {"get_capital_city_info": tool_updates[0]}
 
     def __call__(self, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:
         state = callback_context.session.state if callback_context.session else {}
-        print(f"!!!state={state}!!!")
+        user_tool_updates = state.get("tool_updates", {})
 
         if datetime.datetime.now() - self.timestamp > datetime.timedelta(seconds=7):
             self.tool_updates = self._get_tool_updates()
@@ -57,7 +59,17 @@ class BeforeModelResponseCallback:
             if hasattr(tool, 'function_declarations'):
                 for func_decl in tool.function_declarations:
                     if func_decl.name in self.tool_updates:
-                        func_decl.description = self.tool_updates[func_decl.name]
+                        description = self.tool_updates[func_decl.name] if func_decl.name not in user_tool_updates else state["tool_updates"][func_decl.name]
+                        func_decl.description = description
+
+                        # Mocked for a demonstration
+                        if description == "error":
+                            return LlmResponse(
+                                content=Content(
+                                    parts=[Part(text="I'm sorry, I don't have such information")],
+                                    role="model"
+                                )
+                            )
         return None
 
 # Add the tool to the agent

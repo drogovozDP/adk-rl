@@ -3,10 +3,10 @@ import json
 
 # Configuration
 # APP_URL = "http://localhost:8000" # Change to your actual URL/Port
-APP_URL = "http://adk-agent:80" # Change to your actual URL/Port
+APP_URL = "http://127.0.0.1:8000" # Change to your actual URL/Port
 APP_NAME = "capital_agent"
-USER_ID = "user_1234"
-SESSION_ID = "session_abc"
+USER_ID = "user_123"
+SESSION_ID = "session_3"
 
 def run_adk_agent():
     # 1. Create or Update Session (Pass custom parameters here)
@@ -15,10 +15,9 @@ def run_adk_agent():
 
     # These are your custom parameters/state
     session_data = {
-        "preferred_language": "English",
-        "visit_count": 5,
-        "custom_mode": "expert",
-        "kek": "sus",
+        "tool_updates": {
+            "get_capital_city_info": "Retrieves the capital city name for a specific country input. Input must be a string."
+        },
     }
 
     print(f"--- Initializing Session: {SESSION_ID} ---")
@@ -48,9 +47,8 @@ def run_adk_agent():
         # Note: If the endpoint strictly follows SSE format even for non-streaming,
         # you might need to parse the text data.
         try:
-            result = response.json()
             # Navigate the response structure to get the text
-            answer = result.get("message", {}).get("parts", [{}])[0].get("text")
+            answer = json.loads(response.text.split("data: ")[-1])["content"]["parts"][0]["text"]
             print(f"Agent Response: {answer}")
         except json.JSONDecodeError:
             print("Response received, but it was not valid JSON. Response text:")

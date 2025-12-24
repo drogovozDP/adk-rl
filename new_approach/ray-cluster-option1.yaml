@@ -11,6 +11,7 @@ spec:
       num-cpus: '0'
     template:
       spec:
+        serviceAccountName: default
         containers:
         - name: ray-head
           image: rayproject/ray-ml:2.9.0-py310
@@ -23,11 +24,11 @@ spec:
             name: client
           resources:
             limits:
-              cpu: "1"
-              memory: "4G"
+              cpu: "8"
+              memory: "8G"
             requests:
-              cpu: "1"
-              memory: "4G"
+              cpu: "8"
+              memory: "8G"
   workerGroupSpecs:
   # --- Group 1: Standard, non-sandboxed workers ---
   - replicas: 1
@@ -37,16 +38,17 @@ spec:
     rayStartParams: {}
     template:
       spec:
+        serviceAccountName: default
         containers:
         - name: ray-worker
           image: rayproject/ray-ml:2.9.0-py310
           resources:
             limits:
-              cpu: "1"
-              memory: "4G"
+              cpu: "8"
+              memory: "8G"
             requests:
-              cpu: "1"
-              memory: "4G"
+              cpu: "8"
+              memory: "8G"
 
   # --- Group 2: gVisor-sandboxed workers ---
   - replicas: 2
@@ -58,17 +60,19 @@ spec:
     template:
       metadata:
         annotations:
-          ray.io/resource.gvisor: "1"
+          cloud.google.com/gke-sandbox: "true"
+          # ray.io/resource.gvisor: "1"
       spec:
         # This is the key change: Run this pod with the gVisor runtime
+        serviceAccountName: default
         runtimeClassName: gvisor
         containers:
         - name: ray-worker
           image: rayproject/ray-ml:2.9.0-py310
           resources:
             limits:
-              cpu: "1"
-              memory: "4G"
+              cpu: "8"
+              memory: "8G"
             requests:
-              cpu: "1"
-              memory: "4G"
+              cpu: "8"
+              memory: "8G"

@@ -10,12 +10,15 @@ client = JobSubmissionClient(RAY_DASHBOARD_ADDRESS)
 
 # 2. Define the script to run on the cluster
 # We use a string to represent the entrypoint script
-with open("invoke_svc_test.py", "r") as fi:
+with open("simple_adk.py", "r") as fi:
     job_script = fi.read()
+
+# 3. Submit the Job
+# 'runtime_env' allows you to send local files or pip packages to the cluster
 job_id = client.submit_job(
     entrypoint="python -c '" + job_script + "'",
     runtime_env={
-        "pip": ["requests"] # Add any extra libraries your job needs
+        "pip": ["requests", "google-cloud-storage"] # Add any extra libraries your job needs
     }
 )
 

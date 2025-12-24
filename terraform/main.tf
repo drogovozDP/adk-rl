@@ -22,6 +22,28 @@ provider "google" {
 
 provider "time" {}
 
+# locals {
+#   #ca_certificate        = base64decode(module.gke_cluster.ca_certificate)
+#   cluster_membership_id = var.cluster_membership_id == "" ? local.cluster_name : var.cluster_membership_id
+#   host                  = var.private_cluster ? "https://connectgateway.googleapis.com/v1/projects/${data.google_project.project.number}/locations/${var.cluster_location}/gkeMemberships/${local.cluster_membership_id}" : "https://${module.gke_cluster.endpoint}"
+
+# }
+
+# provider "kubernetes" {
+#   alias                  = "llamaindex"
+#   host                   = local.host
+#   token                  = data.google_client_config.default.access_token
+#   cluster_ca_certificate = var.private_cluster ? "" : base64decode(module.infra[0].ca_certificate)
+
+#   dynamic "exec" {
+#     for_each = var.private_cluster ? [1] : []
+#     content {
+#       api_version = "client.authentication.k8s.io/v1beta1"
+#       command     = "gke-gcloud-auth-plugin"
+#     }
+#   }
+# }
+
 data "google_client_config" "default" {}
 
 data "google_project" "project" {
@@ -111,4 +133,23 @@ resource "google_artifact_registry_repository_iam_binding" "registry_binding_rea
     "serviceAccount:${module.infra[0].service_account}",
   ]
   depends_on = [google_artifact_registry_repository.image_repo, module.infra]
+}
+
+resource "google_storage_bucket" "bucket" {
+  project = var.project_id
+  name    = var.bucket_name
+
+  location      = "US"
+  storage_class = "STANDARD"
+
+  uniform_bucket_level_access = true
+  force_destroy               = true
+}
+
+resource "google_storage_bucket_iam_binding" "binding" {
+  bucket = google_storage_bucket.bucket.name
+  role = "roles/storage.objectUser"
+  members = [
+    "principal://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${var.project_id}.svc.id.goog/subject/ns/default/sa/default"
+  ]
 }

@@ -43,7 +43,7 @@ spec:
                 name: google-api-key
                 key: api-key
           - name: BUCKET_NAME
-            value: dimadrogovoz-tf-backend
+            value: <BUCKET_NAME>
           - name: GCS_FILE_NAME
             value: tool_updates.json
 ---

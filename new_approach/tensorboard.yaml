@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tensorboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tensorboard
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+      labels:
+        app: tensorboard
+    spec:
+      containers:
+      - name: tensorboard
+        # Using the official stable TensorFlow image
+        image: tensorflow/tensorflow:latest
+        # We override the entrypoint to run tensorboard directly
+        command: ["tensorboard"]
+        args:
+          - "--logdir=/logs"
+          - "--bind_all"
+          - "--load_fast=false" # Recommended for FUSE to avoid some caching issues
+        ports:
+        - containerPort: 6006
+        volumeMounts:
+        - name: gcs-logs
+          mountPath: /logs
+          readOnly: true
+      volumes:
+      - name: gcs-logs
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: "adk-gcs-test-bucket"
+            mountOptions: "implicit-dirs"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tensorboard-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 6006
+  selector:
+    app: tensorboard
