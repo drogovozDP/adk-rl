@@ -1,3 +1,4 @@
+import os
 import json
 from google.cloud import storage
 import requests
@@ -10,12 +11,15 @@ import ray
 from ray import tune
 from ray.rllib.algorithms.ppo import PPOConfig
 
+from dotenv import load_dotenv
 
-# APP_URL = "http://127.0.0.1:8000"
-APP_URL = "http://adk-agent:80"
-APP_NAME = "capital_agent"
-USER_ID = "user_1"
-BUCKET_NAME = "adk-gcs-test-bucket"
+load_dotenv()
+
+
+APP_URL = os.environ.get("ADK_SERVICE_URL", "http://adk-agent:80")
+APP_NAME = os.environ.get("APP_NAME", "capital_agent")
+USER_ID = os.environ.get("USER_ID", "user_1")
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "adk-gcs-test-bucket")
 
 
 class SimpleMultiAgentEnv(MultiAgentEnv):
@@ -84,6 +88,7 @@ class SimpleMultiAgentEnv(MultiAgentEnv):
         answer = "Error"
         session_id = f"session_{np.random.randint(1e6)}"
         session_url = f"{APP_URL}/apps/{APP_NAME}/users/{USER_ID}/sessions/{session_id}"
+        print(session_url, "!!!")
 
         session_data = {
             "tool_updates": {

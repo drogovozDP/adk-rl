@@ -1,9 +1,13 @@
 import os
 from ray.job_submission import JobSubmissionClient
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # 1. Configuration
 # Replace with your GKE LoadBalancer IP or local port-forward address
-RAY_DASHBOARD_ADDRESS = "http://127.0.0.1:8265"
+RAY_DASHBOARD_ADDRESS = os.environ.get("RAY_DASHBOARD_ADDRESS", "http://127.0.0.1:8265")
 
 # Initialize the Client
 client = JobSubmissionClient(RAY_DASHBOARD_ADDRESS)

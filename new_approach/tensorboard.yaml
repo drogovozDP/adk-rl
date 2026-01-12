@@ -35,7 +35,7 @@ spec:
         csi:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
-            bucketName: "adk-gcs-test-bucket"
+            bucketName: "<BUCKET_NAME>"
             mountOptions: "implicit-dirs"
 ---
 apiVersion: v1

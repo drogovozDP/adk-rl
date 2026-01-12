@@ -31,7 +31,7 @@ kubectl apply -f ray-cluster-option1.yaml
 Create a Docker image with an ADK agent:
 ```bash
 cd adk-example
-gcloud build submit .
+gcloud builds submit .
 ```
 
 Change `<PROJECT_ID>` to your project ID and `<BUCKET_NAME>` to your bucket name in the `deployment.yaml` file and apply it:

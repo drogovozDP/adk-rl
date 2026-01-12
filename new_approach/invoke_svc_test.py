@@ -1,12 +1,17 @@
+import os
 import requests
 import json
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Configuration
-# APP_URL = "http://localhost:8000" # Change to your actual URL/Port
-APP_URL = "http://127.0.0.1:8000" # Change to your actual URL/Port
-APP_NAME = "capital_agent"
-USER_ID = "user_123"
-SESSION_ID = "session_3"
+APP_URL = os.environ.get("ADK_SERVICE_URL", "http://adk-agent:80")
+APP_NAME = os.environ.get("APP_NAME", "capital_agent")
+USER_ID = os.environ.get("USER_ID", "user_1")
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "adk-gcs-test-bucket")
+
 
 def run_adk_agent():
     # 1. Create or Update Session (Pass custom parameters here)
