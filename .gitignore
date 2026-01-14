@@ -3,5 +3,7 @@
 **/.terraform*
 **/terraform.tfstate
 **/terraform.tfstate.backup
+**/venv
+**/venv_*
 terraform/vars.tfvars
 pyrightconfig.json

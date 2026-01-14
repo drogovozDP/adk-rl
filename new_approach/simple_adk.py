@@ -38,10 +38,19 @@ class SimpleMultiAgentEnv(MultiAgentEnv):
         self.action_space = gym.spaces.Discrete(len(self.candidate_description))
         self.observation_space = gym.spaces.Discrete(len(self.training_queries))
         self.current_query_idx = 0
+        self.worker_idx = config.worker_index
+        self.aid_session_ids = {
+            aid: f"{np.random.randint(1e6)}-{self.worker_idx}"
+            for aid in self._agent_ids
+        }
 
     def reset(self, *, seed=None, options=None):
         """Resets the environment and returns initial observations."""
         self.current_query_idx = self.np_random.integers(0, len(self.training_queries))
+
+        for _, session_id in self.aid_session_ids.items():
+            session_url = f"{APP_URL}/apps/{APP_NAME}/users/{USER_ID}/sessions/session_{session_id}"
+            requests.post(session_url)
 
         observations = {
             aid: int(self.current_query_idx)
@@ -62,7 +71,7 @@ class SimpleMultiAgentEnv(MultiAgentEnv):
             user_query = "What is the capital of " + current_data["country"] + "?"
             target_city = current_data["target"]
 
-            response_text = self._invoke_adk_agent(user_query, chosen_tool)
+            response_text = self._invoke_adk_agent(user_query, chosen_tool, self.aid_session_ids[aid])
             reward = 1.0 if target_city in response_text else -0.5
 
             # response_text = "mocked"
@@ -82,36 +91,35 @@ class SimpleMultiAgentEnv(MultiAgentEnv):
         terminateds["__all__"] = True # End episode after each agent acts
         truncateds["__all__"] = False
 
+        for _, session_id in self.aid_session_ids.items():
+            session_url = f"{APP_URL}/apps/{APP_NAME}/users/{USER_ID}/sessions/session_{session_id}"
+            session_res = requests.delete(session_url)
+            session_res.raise_for_status()
+
         return obs, rewards, terminateds, truncateds, infos
 
-    def _invoke_adk_agent(self, input_text: str, custom_tool_description: str):
+    def _invoke_adk_agent(self, input_text: str, custom_tool_description: str, session_id: str):
         answer = "Error"
-        session_id = f"session_{np.random.randint(1e6)}"
-        session_url = f"{APP_URL}/apps/{APP_NAME}/users/{USER_ID}/sessions/{session_id}"
-        print(session_url, "!!!")
-
-        session_data = {
-            "tool_updates": {
-                "get_capital_city_info": custom_tool_description
-            },
-        }
-
-        session_res = requests.post(session_url, json=session_data)
         run_url = f"{APP_URL}/run_sse"
 
         payload = {
             "app_name": APP_NAME,
             "user_id": USER_ID,
-            "session_id": session_id,
+            "session_id": f"session_{session_id}",
             "new_message": {
                 "role": "user",
                 "parts": [{"text": input_text}]
             },
+            "state_delta": {
+                "tool_updates": {
+                    "get_capital_city_info": custom_tool_description
+                },
+            },
             "streaming": False, # Set to False for a simple JSON response
-            "metadata": "test"
         }
 
         response = requests.post(run_url, json=payload)
+        response.raise_for_status()
 
         if response.status_code == 200:
             try:
@@ -119,9 +127,6 @@ class SimpleMultiAgentEnv(MultiAgentEnv):
             except json.JSONDecodeError:
                 print("Response received, but it was not valid JSON. Response text:")
                 print(response.text)
-
-        session_res = requests.delete(session_url, json=session_data)
-        session_res.raise_for_status()
 
         return answer
 
